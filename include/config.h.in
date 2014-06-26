@@ -1,0 +1,31 @@
+#ifndef CONFIG_H_
+
+#define CONFIG_H_
+
+/* config.h is generated from config.h.in, do not change it with hands */
+#define NSS_CUSTOM_VERSION_MAJOR ${${PROJECT_NAME}_VERSION_MAJOR}
+#define NSS_CUSTOM_VERSION_MINOR ${${PROJECT_NAME}_VERSION_MINOR}
+#define NSS_CUSTOM_VERSION ${${PROJECT_NAME}_VERSION}
+
+#define PREFIX_DEFINED(func) _ ## ${PROJECT_NAME} ## func
+
+#define NSS_CUSTOM_CONF_FILE "${CONF_FILE}"
+#define CONF_FILE_MAX_LINE_LEN 1024
+
+#cmakedefine USE_SYSLOG 1
+#ifndef STR
+# define STR(X) _STR(X)
+# define _STR(X) #X
+#endif
+
+#ifdef USE_SYSLOG
+# include <syslog.h>
+# define PDBG(PRI, FMT, ...) syslog((PRI), __FILE__ ":" STR(__LINE__) ": " FMT , ##  __VA_ARGS__)
+#else
+# define PDBG(...) do{}while(0)
+#endif
+
+
+
+#endif /* CONFIG_H_ */
+
