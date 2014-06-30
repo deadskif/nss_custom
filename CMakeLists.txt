@@ -52,3 +52,5 @@ if(USE_TEST)
         nss_custom_test.c)
     target_link_libraries(nss_custom_test ${PROJECT_NAME})
 endif()
+
+#add_custom_target(

@@ -1,3 +1,21 @@
+/*
+ * Copyright 2014 Vladimir Badaev.
+ *
+ * This file is part of NSS-Custom.
+ *
+ * NSS-Custom is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * NSS-Custom is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with NSS-Custom.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #define _GNU_SOURCE         /* See feature_test_macros(7) */
 #include <pwd.h>
 #include <nss.h>
@@ -7,6 +25,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "config.h"
+
 
 
 #define COPY_IF_ROOM(s) \
@@ -269,5 +288,51 @@ PREFIX_DEFINED(getpwent_r)(struct passwd *result, char *buffer, size_t buflen,
 
   //PDBG(LOG_DEBUG, "%s() == %d", __FUNCTION__, res);
   return res;
+}
+
+enum nss_status
+PREFIX_DEFINED(getpwnam_r) (const char *name, struct passwd *result, char *buffer,
+                       size_t buflen, int *errnop)
+{
+#ifdef PWD_DATA_ARRAY
+    for (size_t idx = 0; idx < npwd_data; ++idx)
+    if (strcmp (pwd_data[idx].pw_name, name) == 0)
+#endif
+
+#ifdef PWD_DATA_LIST
+    struct pwd_data_node *pwnp;
+    for (pwnp = pwd_data; pwnp; pwnp = pwnp->next)
+        if(strcmp(pwnp->pwd.pw_name, name) == 0)
+#endif
+        {
+#ifdef PWD_ATA_ARRAY
+            struct passwd *pwp = pwd_data + idx;
+#endif
+#ifdef PWD_DATA_LIST
+            struct passwd *pwp = &pwnp->pwd;
+#endif
+            char *cp = buffer;
+            int res = NSS_STATUS_SUCCESS;
+
+            result->pw_name = COPY_IF_ROOM (pwp->pw_name);
+            result->pw_passwd = COPY_IF_ROOM (pwp->pw_passwd);
+            result->pw_uid = pwp->pw_uid;
+            result->pw_gid = pwp->pw_gid;
+            result->pw_gecos = COPY_IF_ROOM (pwp->pw_gecos);
+            result->pw_dir = COPY_IF_ROOM (pwp->pw_dir);
+            result->pw_shell = COPY_IF_ROOM (pwp->pw_shell);
+
+            if (result->pw_name == NULL || result->pw_passwd == NULL
+                || result->pw_gecos == NULL || result->pw_dir == NULL
+                || result->pw_shell == NULL)
+            {
+                *errnop = ERANGE;
+                res = NSS_STATUS_TRYAGAIN;
+            }
+
+            return res;
+        }
+
+    return NSS_STATUS_NOTFOUND;
 }
 
