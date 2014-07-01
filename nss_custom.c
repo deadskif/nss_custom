@@ -151,21 +151,48 @@ static int pwd_data_add(struct passwd *pwp) {
 static pthread_mutex_t pwd_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int pwd_exec_handler(const char *arg) {
-    FILE *pwd_pipe;
+    FILE *pwd_file;
     struct passwd *pwp;
-
-    if((pwd_pipe = popen(arg, "r")) == NULL) {
-        PDBG(LOG_ERR, "Can't open %s: %s", arg, strerror(errno));
+    char *buf;
+    int ret = 0;
+    if((tmp = tmpnam(NULL)) == NULL) {
+        PDBG(LOG_ERR, "Can't tmpnam(): %s", strerror(errno));
         return -1;
     }
+    if((buf = malloc(strlen(arg) + sizeof[" > "] + strlen(tmp))) == NULL)
+        PDBG(LOG_ERR, "Can't malloc(): %s", strerror(errno));
+        return -1;
+    }
+    sprintf(buf, "%s > %s", arg, templ);
+    if(system(buf) < 0) {
+        PDBG(LOG_ERR, "Can't system(%s): %s", buf, strerror(errno));
+        ret = -1;
+        goto err_buf_file;
+    }
+/*
+    if((pwd_file = fopen(tmp, "r")) == NULL) {
+        PDBG(LOG_ERR, "Can't fopen() %s: %s", tmp, strerror(errno));
+        goto err_buf;
+    }
 
-    while((pwp = fgetpwent(pwd_pipe)) != NULL) {
+    while((pwp = fgetpwent(pwd_file)) != NULL) {
         pwd_data_add(pwp);
     }
     if(errno != 0)
-        PDBG(LOG_ERR, "Can't fgetpwent: %s", strerror(errno));
-    pclose(pwd_pipe);
+        PDBG(LOG_ERR, "Can't fgetpwent(): %s", strerror(errno));
 
+    fclose(pwd_file);
+
+*/
+    ret = pwd_file_handler(tmp);
+    
+err_buf_file:
+    if(unlink(templ) < 0) {
+        PDBG(LOG_ERR, "Can't unlink(): %s", strerror(errno));
+        ret = -1;
+    }
+err_buf:
+    free(buf);
     return 0;
 }
 static int pwd_file_handler(const char *arg) {
@@ -173,13 +200,15 @@ static int pwd_file_handler(const char *arg) {
     struct passwd *pwp;
 
     if((pwd_file = fopen(arg, "r")) == NULL) {
-        PDBG(LOG_ERR, "Can't open %s: %s", arg, strerror(errno));
+        PDBG(LOG_ERR, "Can't fopen() %s: %s", arg, strerror(errno));
         return -1;
     }
 
     while((pwp = fgetpwent(pwd_file)) != NULL) {
         pwd_data_add(pwp);
     }
+    if(errno != 0)
+        PDBG(LOG_ERR, "Can't fgetpwent(): %s", strerror(errno));
     fclose(pwd_file);
 
     return 0;
