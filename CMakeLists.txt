@@ -44,7 +44,8 @@ add_library(${PROJECT_NAME} SHARED
     nss_custom.c)
 set_target_properties(${PROJECT_NAME}
     PROPERTIES
-    SOVERSION ${${PROJECT_NAME}_VERSION_MAJOR}
+    #SOVERSION ${${PROJECT_NAME}_VERSION_MAJOR}
+    SOVERSION 2 # Glibc want it.
     VERSION ${${PROJECT_NAME}_VERSION})
 
 if(USE_TEST)
