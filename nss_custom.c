@@ -344,13 +344,14 @@ PREFIX_DEFINED(getpwnam_r) (const char *name, struct passwd *result, char *buffe
     if(!pwd_data_inited)
         pwd_data_init();
 #ifdef PWD_DATA_ARRAY
-    for (size_t idx = 0; idx < npwd_data; ++idx)
+    for (size_t idx = 0; idx < npwd_data; ++idx) {
         if (strcmp (pwd_data[idx].pw_name, name) == 0)
 #endif
 
 #ifdef PWD_DATA_LIST
     struct pwd_data_node *pwnp;
-    for (pwnp = pwd_data; pwnp; pwnp = pwnp->next)
+    for (pwnp = pwd_data; pwnp; pwnp = pwnp->next) {
+        PDBG(LOG_DEBUG, "Test if `%s' is equal to `%s'", name, pwnp->pwd.pw_name);
         if(strcmp(pwnp->pwd.pw_name, name) == 0)
 #endif
         {
@@ -381,6 +382,7 @@ PREFIX_DEFINED(getpwnam_r) (const char *name, struct passwd *result, char *buffe
 
             return res;
         }
+    }
 
     return NSS_STATUS_NOTFOUND;
 }
