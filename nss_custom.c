@@ -339,9 +339,11 @@ enum nss_status
 PREFIX_DEFINED(getpwnam_r) (const char *name, struct passwd *result, char *buffer,
                        size_t buflen, int *errnop)
 {
+
+  PDBG(LOG_DEBUG, "%s(%s) pwd data is %s inited", __FUNCTION__, name, pwd_data_inited ? "" : "not");
 #ifdef PWD_DATA_ARRAY
     for (size_t idx = 0; idx < npwd_data; ++idx)
-    if (strcmp (pwd_data[idx].pw_name, name) == 0)
+        if (strcmp (pwd_data[idx].pw_name, name) == 0)
 #endif
 
 #ifdef PWD_DATA_LIST
