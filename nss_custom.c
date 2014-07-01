@@ -162,6 +162,8 @@ static int pwd_exec_handler(const char *arg) {
     while((pwp = fgetpwent(pwd_pipe)) != NULL) {
         pwd_data_add(pwp);
     }
+    if(errno != 0)
+        PDBG(LOG_ERR, "Can't fgetpwent: %s", strerror(errno));
     pclose(pwd_pipe);
 
     return 0;
