@@ -150,20 +150,39 @@ static int pwd_data_add(struct passwd *pwp) {
 }
 static pthread_mutex_t pwd_lock = PTHREAD_MUTEX_INITIALIZER;
 
+static int pwd_file_handler(const char *arg) {
+    FILE *pwd_file;
+    struct passwd *pwp;
+
+    if((pwd_file = fopen(arg, "r")) == NULL) {
+        PDBG(LOG_ERR, "Can't fopen() %s: %s", arg, strerror(errno));
+        return -1;
+    }
+
+    while((pwp = fgetpwent(pwd_file)) != NULL) {
+        pwd_data_add(pwp);
+    }
+    if(errno != 0)
+        PDBG(LOG_ERR, "Can't fgetpwent(): %s", strerror(errno));
+    fclose(pwd_file);
+
+    return 0;
+}
 static int pwd_exec_handler(const char *arg) {
     FILE *pwd_file;
     struct passwd *pwp;
     char *buf;
+    char *tmp;
     int ret = 0;
     if((tmp = tmpnam(NULL)) == NULL) {
         PDBG(LOG_ERR, "Can't tmpnam(): %s", strerror(errno));
         return -1;
     }
-    if((buf = malloc(strlen(arg) + sizeof[" > "] + strlen(tmp))) == NULL)
+    if((buf = malloc(strlen(arg) + sizeof(" > ") + strlen(tmp))) == NULL) {
         PDBG(LOG_ERR, "Can't malloc(): %s", strerror(errno));
         return -1;
     }
-    sprintf(buf, "%s > %s", arg, templ);
+    sprintf(buf, "%s > %s", arg, tmp);
     if(system(buf) < 0) {
         PDBG(LOG_ERR, "Can't system(%s): %s", buf, strerror(errno));
         ret = -1;
@@ -187,30 +206,12 @@ static int pwd_exec_handler(const char *arg) {
     ret = pwd_file_handler(tmp);
     
 err_buf_file:
-    if(unlink(templ) < 0) {
+    if(unlink(tmp) < 0) {
         PDBG(LOG_ERR, "Can't unlink(): %s", strerror(errno));
         ret = -1;
     }
 err_buf:
     free(buf);
-    return 0;
-}
-static int pwd_file_handler(const char *arg) {
-    FILE *pwd_file;
-    struct passwd *pwp;
-
-    if((pwd_file = fopen(arg, "r")) == NULL) {
-        PDBG(LOG_ERR, "Can't fopen() %s: %s", arg, strerror(errno));
-        return -1;
-    }
-
-    while((pwp = fgetpwent(pwd_file)) != NULL) {
-        pwd_data_add(pwp);
-    }
-    if(errno != 0)
-        PDBG(LOG_ERR, "Can't fgetpwent(): %s", strerror(errno));
-    fclose(pwd_file);
-
     return 0;
 }
 static int pwd_data_init() {
