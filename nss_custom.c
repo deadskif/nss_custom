@@ -151,6 +151,19 @@ static int pwd_data_add(struct passwd *pwp) {
 static pthread_mutex_t pwd_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int pwd_exec_handler(const char *arg) {
+    FILE *pwd_pipe;
+    struct passwd *pwp;
+
+    if((pwd_pipe = popen(arg, "r")) == NULL) {
+        PDBG(LOG_ERR, "Can't open %s: %s", arg, strerror(errno));
+        return -1;
+    }
+
+    while((pwp = fgetpwent(pwd_pipe)) != NULL) {
+        pwd_data_add(pwp);
+    }
+    pclose(pwd_pipe);
+
     return 0;
 }
 static int pwd_file_handler(const char *arg) {
@@ -164,8 +177,8 @@ static int pwd_file_handler(const char *arg) {
 
     while((pwp = fgetpwent(pwd_file)) != NULL) {
         pwd_data_add(pwp);
-
     }
+    fclose(pwd_file);
 
     return 0;
 }
