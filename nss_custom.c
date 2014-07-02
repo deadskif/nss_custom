@@ -141,9 +141,9 @@ static int pwd_data_add(struct passwd *pwp) {
         return -1;
     }
     pwd_data = pwd_list_add(pwd_data, node);
-    PDBG(LOG_DEBUG, "node(%s) added, pwd_data = %p", node->pwd.pw_name, pwd_data);
-    PDBG(LOG_INFO, "%s (%d)\tHOME %s\tSHELL %s\n", pwp->pw_name,
-                      pwp->pw_uid, pwp->pw_dir, pwp->pw_shell);
+    //PDBG(LOG_DEBUG, "node(%s) added, pwd_data = %p", node->pwd.pw_name, pwd_data);
+    //PDBG(LOG_INFO, "%s (%d)\tHOME %s\tSHELL %s\n", pwp->pw_name,
+    //                  pwp->pw_uid, pwp->pw_dir, pwp->pw_shell);
 
 #endif
 
@@ -236,7 +236,7 @@ static int pwd_data_init() {
         if(!fgets(buf, CONF_FILE_MAX_LINE_LEN, conf_file)) {
             break;
         }
-        PDBG(LOG_INFO, NSS_CUSTOM_CONF_FILE ":%d: %s", ++conf_file_line, buf);
+        //PDBG(LOG_INFO, NSS_CUSTOM_CONF_FILE ":%d: %s", ++conf_file_line, buf);
         if((nch = strchr(buf, '\n')) != NULL)
             *nch = '\0';
         if((nch = strchr(buf, '#')) != NULL)
@@ -247,10 +247,10 @@ static int pwd_data_init() {
         char *arg = strtok(NULL, "");
         PDBG(LOG_DEBUG, "op = %s, arg = %s", op, arg);
         if(strcmp(op, "exec") == 0) {
-            PDBG(LOG_INFO, "Exec(%s)", arg);
+            //PDBG(LOG_INFO, "Exec(%s)", arg);
             pwd_exec_handler(arg);
         } else if(strcmp(op, "file") == 0) {
-            PDBG(LOG_INFO, "File(%s)", arg);
+            //PDBG(LOG_INFO, "File(%s)", arg);
             pwd_file_handler(arg);
         } else {
             PDBG(LOG_WARNING, "Error in " NSS_CUSTOM_CONF_FILE ":%d: unknown operation %s", conf_file_line, op);
@@ -258,7 +258,7 @@ static int pwd_data_init() {
     }
     fclose(conf_file);
     pwd_data_inited = 1;
-    PDBG(LOG_INFO, "pwd_data inited.");
+    //PDBG(LOG_INFO, "pwd_data inited.");
     return 0;
 }
 
@@ -272,7 +272,7 @@ PREFIX_DEFINED(setpwent)(int stayopen)
 #endif
 #ifdef PWD_DATA_LIST
     curpwd = pwd_data;
-    PDBG(LOG_DEBUG, "curpwd == %p", curpwd);
+    //PDBG(LOG_DEBUG, "curpwd == %p", curpwd);
 #endif
     return NSS_STATUS_SUCCESS;
 }
@@ -340,7 +340,7 @@ PREFIX_DEFINED(getpwnam_r) (const char *name, struct passwd *result, char *buffe
                        size_t buflen, int *errnop)
 {
 
-    PDBG(LOG_DEBUG, "%s(%s) pwd data is %s inited", __FUNCTION__, name, pwd_data_inited ? "" : "not");
+    //PDBG(LOG_DEBUG, "%s(%s) pwd data is %s inited", __FUNCTION__, name, pwd_data_inited ? "" : "not");
     if(!pwd_data_inited)
         pwd_data_init();
 #ifdef PWD_DATA_ARRAY
@@ -351,7 +351,7 @@ PREFIX_DEFINED(getpwnam_r) (const char *name, struct passwd *result, char *buffe
 #ifdef PWD_DATA_LIST
     struct pwd_data_node *pwnp;
     for (pwnp = pwd_data; pwnp; pwnp = pwnp->next) {
-        PDBG(LOG_DEBUG, "Test if `%s' is equal to `%s'", name, pwnp->pwd.pw_name);
+        //PDBG(LOG_DEBUG, "Test if `%s' is equal to `%s'", name, pwnp->pwd.pw_name);
         if(strcmp(pwnp->pwd.pw_name, name) == 0)
 #endif
         {
