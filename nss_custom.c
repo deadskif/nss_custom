@@ -150,24 +150,28 @@ static int pwd_data_add(struct passwd *pwp) {
 }
 static pthread_mutex_t pwd_lock = PTHREAD_MUTEX_INITIALIZER;
 
-static int pwd_file_handler(const char *arg) {
-    FILE *pwd_file;
-    struct passwd *pwp;
-
-    if((pwd_file = fopen(arg, "r")) == NULL) {
-        PDBG(LOG_ERR, "Can't fopen() %s: %s", arg, strerror(errno));
-        return -1;
-    }
-
-    while((pwp = fgetpwent(pwd_file)) != NULL) {
-        pwd_data_add(pwp);
-    }
-    if(errno != 0)
-        PDBG(LOG_ERR, "Can't fgetpwent(): %s", strerror(errno));
-    fclose(pwd_file);
-
-    return 0;
+#define FILE_HANDLER(PREF,SNAME,P) \
+static int PREF ## _file_handler(const char *arg) { \
+    FILE *pwd_file; \
+    struct SNAME *pwp; \
+\
+    if((pwd_file = fopen(arg, "r")) == NULL) { \
+        PDBG(LOG_ERR, "Can't fopen() %s: %s", arg, strerror(errno)); \
+        return -1; \
+    } \
+\
+    while((pwp = fget ## P ## ent(pwd_file)) != NULL) { \
+        PREF ## _data_add(pwp); \
+    } \
+    if(errno != 0) \
+        PDBG(LOG_ERR, "Can't fgetpwent(): %s", strerror(errno)); \
+    fclose(pwd_file); \
+\
+    return 0; \
 }
+FILE_HANDLER(pwd,passwd,pw);
+FILE_HANDLER(spwd,spwd,sp);
+
 static int pwd_exec_handler(const char *arg) {
     FILE *pwd_file;
     struct passwd *pwp;
@@ -188,21 +192,6 @@ static int pwd_exec_handler(const char *arg) {
         ret = -1;
         goto err_buf_file;
     }
-/*
-    if((pwd_file = fopen(tmp, "r")) == NULL) {
-        PDBG(LOG_ERR, "Can't fopen() %s: %s", tmp, strerror(errno));
-        goto err_buf;
-    }
-
-    while((pwp = fgetpwent(pwd_file)) != NULL) {
-        pwd_data_add(pwp);
-    }
-    if(errno != 0)
-        PDBG(LOG_ERR, "Can't fgetpwent(): %s", strerror(errno));
-
-    fclose(pwd_file);
-
-*/
     ret = pwd_file_handler(tmp);
     
 err_buf_file:
@@ -246,12 +235,16 @@ static int pwd_data_init() {
         char *op = strtok(buf, " \t");
         char *arg = strtok(NULL, "");
         PDBG(LOG_DEBUG, "op = %s, arg = %s", op, arg);
-        if(strcmp(op, "exec") == 0) {
+        if(strcmp(op, "pwexec") == 0) {
             //PDBG(LOG_INFO, "Exec(%s)", arg);
             pwd_exec_handler(arg);
-        } else if(strcmp(op, "file") == 0) {
+        } else if(strcmp(op, "pwfile") == 0) {
             //PDBG(LOG_INFO, "File(%s)", arg);
             pwd_file_handler(arg);
+        } else if(strcmp(op, "spexec") == 0) {
+            spwd_exec_handler(arg);
+        } else if(strcmp(op, "spfile") == 0) {
+            spwd_file_handler(arg);
         } else {
             PDBG(LOG_WARNING, "Error in " NSS_CUSTOM_CONF_FILE ":%d: unknown operation %s", conf_file_line, op);
         }
