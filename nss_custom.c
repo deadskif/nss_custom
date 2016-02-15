@@ -187,7 +187,7 @@ static int config_init(Config *cfg) {
     }
     fclose(conf_file);
     cfg->inited = true;
-    cfg->cur = true;
+    cfg->cur = 0;
     //PDBG(LOG_INFO, "pwd_data inited.");
     return 0;
 }
