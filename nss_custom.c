@@ -39,7 +39,7 @@ typedef enum {
 
 typedef struct {
     FileType type;
-    const char *arg;
+    char *arg;
     FILE *file;
 } ConfigElem;
 
@@ -431,7 +431,7 @@ static int pwd_data_init() {
 #endif
 
 
-#define DEFINE_ENT_FUNCTIONST(T, TS, TYPE) \
+#define DEFINE_ENT_FUNCTIONS(T, TS, TYPE) \
     enum nss_status \
     PREFIX_DEFINED(set ## TS ## ent)(int stayopen) \
     { \
@@ -455,7 +455,7 @@ static int pwd_data_init() {
                            int *errnop) \
     { \
         char *cp = buffer; \
-        int ret = NSS_STATUS_SUCCESS; \
+        enum nss_status ret = NSS_STATUS_SUCCESS; \
         int err; \
 \
         LOCK(T); \
@@ -466,6 +466,7 @@ static int pwd_data_init() {
         do { \
             if (cfg->cur == cfg->last) { \
                 ret = NSS_STATUS_NOTFOUND; \
+                *errnop = ENOENT; \
                 found = true; \
             } else { \
                 TYPE *pwp; \
@@ -497,79 +498,38 @@ static int pwd_data_init() {
         return ret; \
     }
 
-DEFINE_ENT_FUNCTIONST(PW, pw, struct passwd);
-DEFINE_ENT_FUNCTIONST(SP, sp, struct spwd);
-DEFINE_ENT_FUNCTIONST(GR, gr, struct group);
-#if 0
-enum nss_status
-PREFIX_DEFINED(getpwnam_r) (const char *name, struct passwd *result, char *buffer,
-                       size_t buflen, int *errnop)
-{
+DEFINE_ENT_FUNCTIONS(PW, pw, struct passwd);
+DEFINE_ENT_FUNCTIONS(SP, sp, struct spwd);
+DEFINE_ENT_FUNCTIONS(GR, gr, struct group);
 
-    //PDBG(LOG_DEBUG, "%s(%s) pwd data is %s inited", __FUNCTION__, name, pwd_data_inited ? "" : "not");
-
-    LOCK(PW);
-    CFG_INIT(PW);
-
-    
-    Config *cfg = configs + NSS_CUSTOM_PW;
-    size_t i;
-    for (i = 0; i < cfg->last; i++) {
-        ConfigElem *el = cfg->elems + i;
-        bool free_at_exit = true;
-        if (el->file) {
-            free_at_exit = false;
-        } else {
-            if (!CFG_EL_INIT(el))
-                continue;
-        };
-
-        err = 
+#define DEFINE_NAM_FUNCTIONS(T,TS,TYPE,N) \
+    enum nss_status \
+    PREFIX_DEFINED(get ## TS ## nam_r) (const char *name, TYPE *result, char *buffer, \
+                           size_t buflen, int *errnop) \
+    { \
+        PREFIX_DEFINED(set ## TS ## ent)(0); \
+        TYPE *pwp; \
+        for(;;) { \
+            int err; \
+            enum nss_status ret = PREFIX_DEFINED(get ## TS ## ent_r)(result, buffer, buflen, &err); \
+            switch (ret) { \
+                case NSS_STATUS_SUCCESS: \
+                    break; \
+                case NSS_STATUS_TRYAGAIN: \
+                case NSS_STATUS_NOTFOUND: \
+                default: \
+                    *errnop = err; \
+                    memset(result, 0, sizeof(TYPE)); \
+                    memset(buffer, 0, buflen); \
+                    return ret; \
+                    break; \
+            } \
+            if (strcmp(result->N, name) == 0) { \
+                return NSS_STATUS_SUCCESS; \
+            } \
+        } \
+        return NSS_STATUS_NOTFOUND; \
     }
-#if 0
-    if(!pwd_data_inited)
-        pwd_data_init();
-#ifdef PWD_DATA_ARRAY
-    for (size_t idx = 0; idx < npwd_data; ++idx) {
-        if (strcmp (pwd_data[idx].pw_name, name) == 0)
-#endif
-
-#ifdef PWD_DATA_LIST
-    struct pwd_data_node *pwnp;
-    for (pwnp = pwd_data; pwnp; pwnp = pwnp->next) {
-        //PDBG(LOG_DEBUG, "Test if `%s' is equal to `%s'", name, pwnp->pwd.pw_name);
-        if(strcmp(pwnp->pwd.pw_name, name) == 0)
-#endif
-        {
-#ifdef PWD_ATA_ARRAY
-            struct passwd *pwp = pwd_data + idx;
-#endif
-#ifdef PWD_DATA_LIST
-            struct passwd *pwp = &pwnp->pwd;
-#endif
-            char *cp = buffer;
-            int res = NSS_STATUS_SUCCESS;
-
-            result->pw_name = COPY_IF_ROOM (pwp->pw_name);
-            result->pw_passwd = COPY_IF_ROOM (pwp->pw_passwd);
-            result->pw_uid = pwp->pw_uid;
-            result->pw_gid = pwp->pw_gid;
-            result->pw_gecos = COPY_IF_ROOM (pwp->pw_gecos);
-            result->pw_dir = COPY_IF_ROOM (pwp->pw_dir);
-            result->pw_shell = COPY_IF_ROOM (pwp->pw_shell);
-
-            if (result->pw_name == NULL || result->pw_passwd == NULL
-                || result->pw_gecos == NULL || result->pw_dir == NULL
-                || result->pw_shell == NULL)
-            {
-                *errnop = ERANGE;
-                res = NSS_STATUS_TRYAGAIN;
-            }
-
-            return res;
-        }
-    }
-#endif
-    return NSS_STATUS_NOTFOUND;
-}
-#endif
+DEFINE_NAM_FUNCTIONS(PW, pw, struct passwd, pw_name);
+DEFINE_NAM_FUNCTIONS(SP, sp, struct spwd, sp_namp);
+DEFINE_NAM_FUNCTIONS(GR, gr, struct group, gr_name);
