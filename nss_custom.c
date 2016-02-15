@@ -511,7 +511,7 @@ DEFINE_ENT_FUNCTIONS(GR, gr, struct group);
         TYPE *pwp; \
         for(;;) { \
             int err; \
-            PDBG(LOG_INFO, "%s(%s)", __FUNCTIONS__, name); \
+            PDBG(LOG_INFO, "%s(%s)", __FUNCTION__, name); \
             enum nss_status ret = PREFIX_DEFINED(get ## TS ## ent_r)(result, buffer, buflen, &err); \
             switch (ret) { \
                 case NSS_STATUS_SUCCESS: \
