@@ -131,6 +131,7 @@ static int config_append(Config *cfg, ConfigElem el) {
     if (cel->arg == NULL) {
         return -1;
     }
+    PDBG(LOG_DEBUG, "%s(%s) %s added." ,__FUNCTION__, cfg->prefix, cel->arg);
     cfg->last++;
     return 0;
 }
@@ -188,7 +189,7 @@ static int config_init(Config *cfg) {
     fclose(conf_file);
     cfg->inited = true;
     cfg->cur = 0;
-    //PDBG(LOG_INFO, "pwd_data inited.");
+    PDBG(LOG_INFO, "config %s inited(%zu)", cfg->prefix, cfg->last);
     return 0;
 }
 
