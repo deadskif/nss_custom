@@ -148,6 +148,7 @@ static int config_free(Config *cfg) {
     cfg->elems = NULL;
     cfg->allocated = 0;
     cfg->last = 0;
+    cfg->inited = false;
 }
 
 static int config_init(Config *cfg) {
