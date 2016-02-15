@@ -123,16 +123,12 @@ static int config_append(Config *cfg, ConfigElem el) {
         PDBG(LOG_DEBUG, "%s(%s) alloc %zu (%p) -> %zu (%p)", __FUNCTION__, cfg->prefix, cfg->last, cfg->elems, cfg->allocated, n);
         if (n == NULL)
             return -1;
-        cfg->elems == n;
-        PDBG(LOG_DEBUG, "%s() elems %p, last %zu, cel %p", __FUNCTION__, cfg->elems, cfg->last, cfg->elems + cfg->last);
+        cfg->elems = n;
     }
-    PDBG(LOG_DEBUG, "%s() elems %p, last %zu, cel %p", __FUNCTION__, cfg->elems, cfg->last, cfg->elems + cfg->last);
     ConfigElem *cel = cfg->elems + cfg->last;
-    PDBG(LOG_DEBUG, "%s(%s) [%zu] adding {%d, %s} to %p" ,__FUNCTION__, cfg->prefix, cfg->last, el.type, el.arg, cel);
     cel->type = el.type;
     cel->arg = strdup(el.arg);
     cel->file = NULL;
-    PDBG(LOG_DEBUG, "%s(%s) %s adding to %p." ,__FUNCTION__, cfg->prefix, cel->arg, cel);
     if (cel->arg == NULL) {
         return -1;
     }
