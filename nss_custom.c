@@ -120,11 +120,12 @@ static int config_append(Config *cfg, ConfigElem el) {
     if (cfg->last == cfg->allocated) {
         cfg->allocated += CONFIG_INC;
         ConfigElem *n = realloc(cfg->elems, sizeof(ConfigElem) * cfg->allocated);
-        PDBG(LOG_DEBUG, "%s(%s) alloc %zu -> %zu (%p)", __FUNCTION__, cfg->prefix, cfg->last, cfg->allocated, n);
+        PDBG(LOG_DEBUG, "%s(%s) alloc %zu (%p) -> %zu (%p)", __FUNCTION__, cfg->prefix, cfg->last, cfg->elems, cfg->allocated, n);
         if (n == NULL)
             return -1;
         cfg->elems == n;
     }
+    PDBG(LOG_DEBUG, "%s(%s) %s adding" ,__FUNCTION__, cfg->prefix, cel->arg);
     ConfigElem *cel = cfg->elems + cfg->last;
     PDBG(LOG_DEBUG, "%s(%s) %s adding to %p." ,__FUNCTION__, cfg->prefix, cel->arg, cel);
     cel->type = el.type;
