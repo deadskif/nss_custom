@@ -521,13 +521,16 @@ DEFINE_ENT_FUNCTIONS(GR, gr, struct group);
                     *errnop = err; \
                     memset(result, 0, sizeof(TYPE)); \
                     memset(buffer, 0, buflen); \
+                    PREFIX_DEFINED(end ## TS ## ent)(0); \
                     return ret; \
                     break; \
             } \
             if (strcmp(result->N, name) == 0) { \
+                PREFIX_DEFINED(end ## TS ## ent)(0); \
                 return NSS_STATUS_SUCCESS; \
             } \
         } \
+        PREFIX_DEFINED(end ## TS ## ent)(0); \
         return NSS_STATUS_NOTFOUND; \
     }
 DEFINE_NAM_FUNCTIONS(PW, pw, struct passwd, pw_name);
