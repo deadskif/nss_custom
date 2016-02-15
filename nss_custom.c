@@ -185,8 +185,6 @@ static int config_init(Config *cfg) {
             } else {
                 PDBG(LOG_WARNING, "Error in " NSS_CUSTOM_CONF_FILE ":%d: unknown operation %s", conf_file_line, op);
             }
-        } else {
-            PDBG(LOG_WARNING, "Error in " NSS_CUSTOM_CONF_FILE ":%d: unknown type %s", conf_file_line, type);
         }
     }
     fclose(conf_file);
@@ -535,6 +533,7 @@ DEFINE_ENT_FUNCTIONS(GR, gr, struct group);
             } \
             if (strcmp(result->N, name) == 0) { \
                 PREFIX_DEFINED(end ## TS ## ent)(); \
+                PDBG(LOG_INFO, "%s(%s) found", __FUNCTION__, name); \
                 return NSS_STATUS_SUCCESS; \
             } \
         } \
