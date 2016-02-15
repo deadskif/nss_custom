@@ -120,6 +120,7 @@ static int config_append(Config *cfg, ConfigElem el) {
     if (cfg->last == cfg->allocated) {
         cfg->allocated += CONFIG_INC;
         ConfigElem *n = realloc(cfg->elems, sizeof(ConfigElem) * cfg->allocated);
+        PDBG(LOG_DEBUG, "%s(%s) alloc %zu -> %zu (%p)", __FUNCTION__, cfg->prefix, cfg->last, cfg->allocated, n);
         if (n == NULL)
             return -1;
         cfg->elems == n;
