@@ -464,6 +464,7 @@ static int pwd_data_init() {
         Config *cfg = configs + NSS_CUSTOM_ ## T; \
         bool found = false; \
         do { \
+            PDBG(LOG_INFO, "%s() %zu/%zu", __FUNCTION__, cfg->cur, cfg->last); \
             if (cfg->cur == cfg->last) { \
                 ret = NSS_STATUS_NOTFOUND; \
                 *errnop = ENOENT; \
@@ -471,12 +472,14 @@ static int pwd_data_init() {
             } else { \
                 TYPE *pwp; \
                 ConfigElem *el = cfg->elems + cfg->cur; \
+                PDBG(LOG_INFO, "%s() %s", __FUNCTION__, el->arg); \
                 if (!CFG_EL_INIT(el)) { \
                     PDBG(LOG_ERR, "Can't use %s: %s", el->arg, strerror(errno)); \
                     cfg->cur++; \
                     continue; \
                 } \
                 err = fget ## TS ## ent_r(el->file, result, buffer, buflen, &pwp); \
+                PDBG(LOG_INFO, "%s() fget*ent_t", __FUNCTION__, err); \
                 switch (err) { \
                     case 0: /* OK */ \
                         found = true; \
