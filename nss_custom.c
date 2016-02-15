@@ -120,7 +120,7 @@ static int config_append(Config *cfg, ConfigElem el) {
     if (cfg->last == cfg->allocated) {
         cfg->allocated += CONFIG_INC;
         ConfigElem *n = realloc(cfg->elems, sizeof(ConfigElem) * cfg->allocated);
-        PDBG(LOG_DEBUG, "%s(%s) alloc %zu (%p) -> %zu (%p)", __FUNCTION__, cfg->prefix, cfg->last, cfg->elems, cfg->allocated, n);
+        /*PDBG(LOG_DEBUG, "%s(%s) alloc %zu (%p) -> %zu (%p)", __FUNCTION__, cfg->prefix, cfg->last, cfg->elems, cfg->allocated, n);*/
         if (n == NULL)
             return -1;
         cfg->elems = n;
@@ -132,7 +132,7 @@ static int config_append(Config *cfg, ConfigElem el) {
     if (cel->arg == NULL) {
         return -1;
     }
-    PDBG(LOG_DEBUG, "%s(%s) %s added." ,__FUNCTION__, cfg->prefix, cel->arg);
+    /*PDBG(LOG_DEBUG, "%s(%s) %s added." ,__FUNCTION__, cfg->prefix, cel->arg);*/
     cfg->last++;
     return 0;
 }
@@ -177,7 +177,7 @@ static int config_init(Config *cfg) {
         char *type = strtok_r(buf, " \t", &saveptr);
         char *op = strtok_r(NULL, " \t", &saveptr);
         char *arg = strtok_r(NULL, "", &saveptr);
-        PDBG(LOG_DEBUG, "type = %s, op = %s, arg = %s", type, op, arg);
+        PDBG(LOG_DEBUG, "type = %s, op = %s, arg = %s", type, op, "<HIDDEN>"/*arg*/);
         if (strcmp(type, cfg->prefix) == 0) {
             if(strcmp(op, "exec") == 0) {
                 config_append(cfg, (ConfigElem){ NSS_CUSTOM_PIPE, arg});
@@ -467,7 +467,7 @@ static int pwd_data_init() {
         Config *cfg = configs + NSS_CUSTOM_ ## T; \
         bool found = false; \
         do { \
-            PDBG(LOG_INFO, "%s() %zu/%zu", __FUNCTION__, cfg->cur, cfg->last); \
+            /*PDBG(LOG_INFO, "%s() %zu/%zu", __FUNCTION__, cfg->cur, cfg->last);*/ \
             if (cfg->cur == cfg->last) { \
                 ret = NSS_STATUS_NOTFOUND; \
                 *errnop = ENOENT; \
@@ -475,14 +475,14 @@ static int pwd_data_init() {
             } else { \
                 TYPE *pwp; \
                 ConfigElem *el = cfg->elems + cfg->cur; \
-                PDBG(LOG_INFO, "%s() %s", __FUNCTION__, el->arg); \
+                /*PDBG(LOG_INFO, "%s() %s", __FUNCTION__, el->arg);*/ \
                 if (!CFG_EL_INIT(el)) { \
                     PDBG(LOG_ERR, "Can't use %s: %s", el->arg, strerror(errno)); \
                     cfg->cur++; \
                     continue; \
                 } \
                 err = fget ## TS ## ent_r(el->file, result, buffer, buflen, &pwp); \
-                PDBG(LOG_INFO, "%s() fget*ent_t", __FUNCTION__, err); \
+                /*PDBG(LOG_INFO, "%s() fget*ent_t", __FUNCTION__, err);*/ \
                 switch (err) { \
                     case 0: /* OK */ \
                         found = true; \
