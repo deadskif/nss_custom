@@ -125,7 +125,7 @@ static int config_append(Config *cfg, ConfigElem el) {
             return -1;
         cfg->elems == n;
     }
-    PDBG(LOG_DEBUG, "%s(%s) %s adding" ,__FUNCTION__, cfg->prefix, cel->arg);
+    PDBG(LOG_DEBUG, "%s(%s) [%d] adding" ,__FUNCTION__, cfg->prefix, cfg->last);
     ConfigElem *cel = cfg->elems + cfg->last;
     PDBG(LOG_DEBUG, "%s(%s) %s adding to %p." ,__FUNCTION__, cfg->prefix, cel->arg, cel);
     cel->type = el.type;
