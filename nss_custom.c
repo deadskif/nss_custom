@@ -470,7 +470,7 @@ static int pwd_data_init() {
             /*PDBG(LOG_INFO, "%s() %zu/%zu", __FUNCTION__, cfg->cur, cfg->last);*/ \
             if (cfg->cur == cfg->last) { \
                 ret = NSS_STATUS_NOTFOUND; \
-                *errnop = ENOENT; \
+                /* *errnop = ENOENT; */ \
                 found = true; \
             } else { \
                 TYPE *pwp; \
