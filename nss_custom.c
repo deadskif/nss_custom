@@ -124,6 +124,7 @@ static int config_append(Config *cfg, ConfigElem el) {
         if (n == NULL)
             return -1;
         cfg->elems == n;
+        PDBG(LOG_DEBUG, "%s() elems %p, last %zu, cel %p", __FUNCTION__, cfg->elems, cfg->last, cfg->elems + cfg->last);
     }
     PDBG(LOG_DEBUG, "%s() elems %p, last %zu, cel %p", __FUNCTION__, cfg->elems, cfg->last, cfg->elems + cfg->last);
     ConfigElem *cel = cfg->elems + cfg->last;
