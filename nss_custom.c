@@ -103,7 +103,7 @@ static Config configs[CONFIGS] = {
                     break; \
             } \
         } \
-        (ELP)->file;
+        (ELP)->file; \
     })
 #define CFG_EL_FREE(ELP) \
     do { \
@@ -117,9 +117,9 @@ static Config configs[CONFIGS] = {
         } \
     } while(0)
 static int config_append(Config *cfg, ConfigElem el) {
-    if (cfg->last == config->allocated) {
-        config->allocated += CONFIG_INC;
-        ConfigElem *n = realloc(cfg->elems, sizeof(ConfigElem) * config->allocated);
+    if (cfg->last == cfg->allocated) {
+        cfg->allocated += CONFIG_INC;
+        ConfigElem *n = realloc(cfg->elems, sizeof(ConfigElem) * cfg->allocated);
         if (n == NULL)
             return -1;
         cfg->elems == n;
@@ -451,7 +451,7 @@ static int pwd_data_init() {
     } \
 \
     enum nss_status \
-    PREFIX_DEFINED(get ## TS ## ent_r)(struct passwd *result, char *buffer, size_t buflen, \
+    PREFIX_DEFINED(get ## TS ## ent_r)(TYPE *result, char *buffer, size_t buflen, \
                            int *errnop) \
     { \
         char *cp = buffer; \
@@ -471,7 +471,7 @@ static int pwd_data_init() {
                 TYPE *pwp; \
                 ConfigElem *el = cfg->elems + cfg->cur; \
                 if (!CFG_EL_INIT(el)) { \
-                    PDBG(LOG_ERR, "Can't use %s: %s", el->file, strerror(errno)); \
+                    PDBG(LOG_ERR, "Can't use %s: %s", el->arg, strerror(errno)); \
                     cfg->cur++; \
                     continue; \
                 } \
@@ -481,7 +481,7 @@ static int pwd_data_init() {
                         found = true; \
                         break; \
                     case ERANGE: /* Buffer too small */ \
-                        res = NSS_STATUS_TRYAGAIN; \
+                        ret = NSS_STATUS_TRYAGAIN; \
                         *errnop = err; \
                     case ENOENT: \
                     default: \
@@ -494,7 +494,7 @@ static int pwd_data_init() {
         } while(!found); \
 \
         UNLOCK(T); \
-        return res; \
+        return ret; \
     }
 
 DEFINE_ENT_FUNCTIONST(PW, pw, struct passwd);
