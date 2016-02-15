@@ -18,15 +18,182 @@
  */
 #define _GNU_SOURCE         /* See feature_test_macros(7) */
 #include <pwd.h>
+#include <shadow.h>
+#include <grp.h>
 #include <nss.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include "config.h"
 
 
+
+typedef enum {
+    NSS_CUSTOM_FILE,
+    NSS_CUSTOM_PIPE
+} FileType;
+
+typedef struct {
+    FileType type;
+    const char *arg;
+    FILE *file;
+} ConfigElem;
+
+#define CONFIG_INC 16
+typedef struct {
+    pthread_mutex_t lock;
+    const char *prefix;
+    ConfigElem *elems;
+    size_t  allocated;
+    size_t  last;
+    bool    inited;
+    size_t  cur;
+} Config;
+
+typedef enum {
+    NSS_CUSTOM_PW,
+    NSS_CUSTOM_SP,
+    NSS_CUSTOM_GR
+} EntType;
+#define CONFIGS 3
+    
+static Config configs[CONFIGS] = {
+    [NSS_CUSTOM_PW] = {
+        .lock = PTHREAD_MUTEX_INITIALIZER,
+        .prefix = "pw"
+    },
+    [NSS_CUSTOM_SP] = {
+        .lock = PTHREAD_MUTEX_INITIALIZER,
+        .prefix = "sp"
+    },
+    [NSS_CUSTOM_GR] = {
+        .lock = PTHREAD_MUTEX_INITIALIZER,
+        .prefix = "gr"
+    },
+};
+#define LOCK(T) \
+    pthread_mutex_lock(&configs[NSS_CUSTOM_ ## T].lock);
+
+#define UNLOCK(T) \
+     pthread_mutex_unlock(&configs[NSS_CUSTOM_ ## T].lock);
+
+#define CFG_INIT(T) do { \
+    if (!configs[NSS_CUSTOM_ ## T].inited) \
+        config_init(configs + NSS_CUSTOM_ ## T); \
+    if (!configs[NSS_CUSTOM_ ## T].inited) \
+        return NSS_STATUS_UNAVAIL; \
+}while(0)
+
+#define CFG_FREE(T) \
+    config_free(configs + NSS_CUSTOM_ ## T)
+
+#define CFG_EL_INIT(ELP) \
+    ({ \
+        if (!(ELP)->file) { \
+            switch((ELP)->type) { \
+                case NSS_CUSTOM_FILE: \
+                    (ELP)->file = fopen((ELP)->arg, "r"); \
+                    break; \
+                case NSS_CUSTOM_PIPE: \
+                    (ELP)->file = popen((ELP)->arg, "r"); \
+                    break; \
+            } \
+        } \
+        (ELP)->file;
+    })
+#define CFG_EL_FREE(ELP) \
+    do { \
+        switch ((ELP)->type) { \
+            case NSS_CUSTOM_FILE: \
+                fclose((ELP)->file); \
+                break; \
+            case NSS_CUSTOM_PIPE: \
+                pclose((ELP)->file); \
+                break; \
+        } \
+    } while(0)
+static int config_append(Config *cfg, ConfigElem el) {
+    if (cfg->last == config->allocated) {
+        config->allocated += CONFIG_INC;
+        ConfigElem *n = realloc(cfg->elems, sizeof(ConfigElem) * config->allocated);
+        if (n == NULL)
+            return -1;
+        cfg->elems == n;
+    }
+    ConfigElem *cel = cfg->elems + cfg->last;
+    cel->type = el.type;
+    cel->arg = strdup(el.arg);
+    cel->file = NULL;
+    if (cel->arg == NULL) {
+        return -1;
+    }
+    cfg->last++;
+    return 0;
+}
+static int config_free(Config *cfg) {
+    size_t i;
+    for (i = 0; i < cfg->last; i++) {
+        if (cfg->elems[i].arg) {
+            free(cfg->elems[i].arg);
+        }
+    }
+    if (cfg->elems)
+        free(cfg->elems);
+    cfg->elems = NULL;
+    cfg->allocated = 0;
+    cfg->last = 0;
+}
+
+static int config_init(Config *cfg) {
+    FILE *conf_file;
+    int conf_file_line = 0;
+    char buf[CONF_FILE_MAX_LINE_LEN];
+
+    if((conf_file = fopen(NSS_CUSTOM_CONF_FILE, "r")) == NULL) {
+        PDBG(LOG_ERR, "Can't open " NSS_CUSTOM_CONF_FILE ": %s", strerror(errno));
+        return -1;
+    }
+
+    while(!feof(conf_file)) {
+        char *nch;
+        if(!fgets(buf, CONF_FILE_MAX_LINE_LEN, conf_file)) {
+            break;
+        }
+        //PDBG(LOG_INFO, NSS_CUSTOM_CONF_FILE ":%d: %s", ++conf_file_line, buf);
+        if((nch = strchr(buf, '\n')) != NULL)
+            *nch = '\0';
+        if((nch = strchr(buf, '#')) != NULL)
+            *nch = '\0';
+        if(*buf == '\0')
+            continue;
+        char *saveptr = NULL;
+        char *type = strtok_r(buf, " \t", &saveptr);
+        char *op = strtok_r(NULL, " \t", &saveptr);
+        char *arg = strtok_r(NULL, "", &saveptr);
+        PDBG(LOG_DEBUG, "type = %s, op = %s, arg = %s", type, op, arg);
+        if (type == cfg->prefix) {
+            if(strcmp(op, "exec") == 0) {
+                config_append(cfg, (ConfigElem){ NSS_CUSTOM_PIPE, arg});
+            } else if(strcmp(op, "file") == 0) {
+                config_append(cfg, (ConfigElem){ NSS_CUSTOM_FILE, arg});
+            } else {
+                PDBG(LOG_WARNING, "Error in " NSS_CUSTOM_CONF_FILE ":%d: unknown operation %s", conf_file_line, op);
+            }
+        }
+    }
+    fclose(conf_file);
+    cfg->inited = true;
+    cfg->cur = true;
+    //PDBG(LOG_INFO, "pwd_data inited.");
+    return 0;
+}
+
+
+#if 0
 
 #define COPY_IF_ROOM(s) \
   ({ size_t len_ = strlen (s) + 1;              \
@@ -261,86 +428,105 @@ static int pwd_data_init() {
     //PDBG(LOG_INFO, "pwd_data inited.");
     return 0;
 }
-
-enum nss_status
-PREFIX_DEFINED(setpwent)(int stayopen)
-{
-    if(!pwd_data_inited)
-        pwd_data_init();
-#ifdef PWD_DATA_ARRAY
-    pwd_iter = 0;
 #endif
-#ifdef PWD_DATA_LIST
-    curpwd = pwd_data;
-    //PDBG(LOG_DEBUG, "curpwd == %p", curpwd);
-#endif
-    return NSS_STATUS_SUCCESS;
-}
 
 
-enum nss_status
-PREFIX_DEFINED(endpwent)(void)
-{
-  return NSS_STATUS_SUCCESS;
-}
-
-
-//enum nss_status PREFIX_DEFINED(getpwent_r)(struct passwd *pwbuf, char *buf,
-//                      size_t buflen, int );
-enum nss_status
-PREFIX_DEFINED(getpwent_r)(struct passwd *result, char *buffer, size_t buflen,
-                       int *errnop)
-{
-  char *cp = buffer;
-  int res = NSS_STATUS_SUCCESS;
-
-  pthread_mutex_lock (&pwd_lock);
-#ifdef PWD_DATA_ARRAY
-  if (pwd_iter >= pwd_data_size)
-#endif
-#ifdef PWD_DATA_LIST
-  //PDBG(LOG_DEBUG, "curpwd == %p, res == %d", curpwd, res);
-  if (curpwd == NULL)
-#endif
-    res = NSS_STATUS_NOTFOUND;
-  else
-    {
-      result->pw_name = COPY_IF_ROOM (CURPWD.pw_name);
-      result->pw_passwd = COPY_IF_ROOM (CURPWD.pw_passwd);
-      result->pw_uid = CURPWD.pw_uid;
-      result->pw_gid = CURPWD.pw_gid;
-      result->pw_gecos = COPY_IF_ROOM (CURPWD.pw_gecos);
-      result->pw_dir = COPY_IF_ROOM (CURPWD.pw_dir);
-      result->pw_shell = COPY_IF_ROOM (CURPWD.pw_shell);
-
-      if (result->pw_name == NULL || result->pw_passwd == NULL
-          || result->pw_gecos == NULL || result->pw_dir == NULL
-          || result->pw_shell == NULL)
-        {
-          *errnop = ERANGE;
-          res = NSS_STATUS_TRYAGAIN;
-        }
-#ifdef PWD_DATA_ARRAY
-      ++pwd_iter;
-#endif
-#ifdef PWD_DATA_LIST
-      //PDBG(LOG_DEBUG, "curpwd->next == %p", curpwd->next);
-      curpwd = curpwd->next;
-#endif
+#define DEFINE_ENT_FUNCTIONST(T, TS, TYPE) \
+    enum nss_status \
+    PREFIX_DEFINED(set ## TS ## ent)(int stayopen) \
+    { \
+        LOCK(T); \
+        CFG_INIT(T); \
+        UNLOCK(T); \
+        return NSS_STATUS_SUCCESS; \
+    } \
+\
+    enum nss_status \
+    PREFIX_DEFINED(end ## TS ## ent)(void) \
+    { \
+        LOCK(T); \
+        CFG_FREE(T); \
+        UNLOCK(T); \
+        return NSS_STATUS_SUCCESS; \
+    } \
+\
+    enum nss_status \
+    PREFIX_DEFINED(get ## TS ## ent_r)(struct passwd *result, char *buffer, size_t buflen, \
+                           int *errnop) \
+    { \
+        char *cp = buffer; \
+        int ret = NSS_STATUS_SUCCESS; \
+        int err; \
+\
+        LOCK(T); \
+        CFG_INIT(T); \
+\
+        Config *cfg = configs + NSS_CUSTOM_ ## T; \
+        bool found = false; \
+        do { \
+            if (cfg->cur == cfg->last) { \
+                ret = NSS_STATUS_NOTFOUND; \
+                found = true; \
+            } else { \
+                TYPE *pwp; \
+                ConfigElem *el = cfg->elems + cfg->cur; \
+                if (!CFG_EL_INIT(el)) { \
+                    PDBG(LOG_ERR, "Can't use %s: %s", el->file, strerror(errno)); \
+                    cfg->cur++; \
+                    continue; \
+                } \
+                err = fget ## TS ## ent_r(el->file, result, buffer, buflen, &pwp); \
+                switch (err) { \
+                    case 0: /* OK */ \
+                        found = true; \
+                        break; \
+                    case ERANGE: /* Buffer too small */ \
+                        res = NSS_STATUS_TRYAGAIN; \
+                        *errnop = err; \
+                    case ENOENT: \
+                    default: \
+                        /* Let's read another */ \
+                        CFG_EL_FREE(el); \
+                        cfg->cur++; \
+                        break; \
+                }; \
+            } \
+        } while(!found); \
+\
+        UNLOCK(T); \
+        return res; \
     }
 
-  pthread_mutex_unlock (&pwd_lock);
-
-  //PDBG(LOG_DEBUG, "%s() == %d", __FUNCTION__, res);
-  return res;
-}
-
+DEFINE_ENT_FUNCTIONST(PW, pw, struct passwd);
+DEFINE_ENT_FUNCTIONST(SP, sp, struct spwd);
+DEFINE_ENT_FUNCTIONST(GR, gr, struct group);
+#if 0
 enum nss_status
 PREFIX_DEFINED(getpwnam_r) (const char *name, struct passwd *result, char *buffer,
                        size_t buflen, int *errnop)
 {
 
     //PDBG(LOG_DEBUG, "%s(%s) pwd data is %s inited", __FUNCTION__, name, pwd_data_inited ? "" : "not");
+
+    LOCK(PW);
+    CFG_INIT(PW);
+
+    
+    Config *cfg = configs + NSS_CUSTOM_PW;
+    size_t i;
+    for (i = 0; i < cfg->last; i++) {
+        ConfigElem *el = cfg->elems + i;
+        bool free_at_exit = true;
+        if (el->file) {
+            free_at_exit = false;
+        } else {
+            if (!CFG_EL_INIT(el))
+                continue;
+        };
+
+        err = 
+    }
+#if 0
     if(!pwd_data_inited)
         pwd_data_init();
 #ifdef PWD_DATA_ARRAY
@@ -383,7 +569,7 @@ PREFIX_DEFINED(getpwnam_r) (const char *name, struct passwd *result, char *buffe
             return res;
         }
     }
-
+#endif
     return NSS_STATUS_NOTFOUND;
 }
-
+#endif
