@@ -177,7 +177,7 @@ static int config_init(Config *cfg) {
         char *op = strtok_r(NULL, " \t", &saveptr);
         char *arg = strtok_r(NULL, "", &saveptr);
         PDBG(LOG_DEBUG, "type = %s, op = %s, arg = %s", type, op, arg);
-        if (type == cfg->prefix) {
+        if (strcmp(type, cfg->prefix) == 0) {
             if(strcmp(op, "exec") == 0) {
                 config_append(cfg, (ConfigElem){ NSS_CUSTOM_PIPE, arg});
             } else if(strcmp(op, "file") == 0) {
@@ -185,6 +185,8 @@ static int config_init(Config *cfg) {
             } else {
                 PDBG(LOG_WARNING, "Error in " NSS_CUSTOM_CONF_FILE ":%d: unknown operation %s", conf_file_line, op);
             }
+        } else {
+            PDBG(LOG_WARNING, "Error in " NSS_CUSTOM_CONF_FILE ":%d: unknown type %s", conf_file_line, type);
         }
     }
     fclose(conf_file);
