@@ -20,7 +20,7 @@ endif()
 
 
 #find_file(ERROR_H error.h)
-find_file(NSS_H ndss.h)
+find_file(NSS_H nss.h)
 #if(NSS_H_NOTFOUND)
 #    message(FATAL_ERROR "nss.h not found")
 #endif()

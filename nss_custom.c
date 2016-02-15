@@ -511,6 +511,7 @@ DEFINE_ENT_FUNCTIONS(GR, gr, struct group);
         TYPE *pwp; \
         for(;;) { \
             int err; \
+            PDBG(LOG_INFO, "%s(%s)", __FUNCTIONS__, name); \
             enum nss_status ret = PREFIX_DEFINED(get ## TS ## ent_r)(result, buffer, buflen, &err); \
             switch (ret) { \
                 case NSS_STATUS_SUCCESS: \
@@ -521,16 +522,16 @@ DEFINE_ENT_FUNCTIONS(GR, gr, struct group);
                     *errnop = err; \
                     memset(result, 0, sizeof(TYPE)); \
                     memset(buffer, 0, buflen); \
-                    PREFIX_DEFINED(end ## TS ## ent)(0); \
+                    PREFIX_DEFINED(end ## TS ## ent)(); \
                     return ret; \
                     break; \
             } \
             if (strcmp(result->N, name) == 0) { \
-                PREFIX_DEFINED(end ## TS ## ent)(0); \
+                PREFIX_DEFINED(end ## TS ## ent)(); \
                 return NSS_STATUS_SUCCESS; \
             } \
         } \
-        PREFIX_DEFINED(end ## TS ## ent)(0); \
+        PREFIX_DEFINED(end ## TS ## ent)(); \
         return NSS_STATUS_NOTFOUND; \
     }
 DEFINE_NAM_FUNCTIONS(PW, pw, struct passwd, pw_name);
