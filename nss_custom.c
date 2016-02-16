@@ -475,14 +475,14 @@ static int pwd_data_init() {
             } else { \
                 TYPE *pwp = NULL; \
                 ConfigElem *el = cfg->elems + cfg->cur; \
-                PDBG(LOG_INFO, "%s() %s", __FUNCTION__, el->arg); \
+                /* PDBG(LOG_INFO, "%s() %s", __FUNCTION__, el->arg); */\
                 if (!CFG_EL_INIT(el)) { \
                     PDBG(LOG_ERR, "Can't use %s: %s", el->arg, strerror(errno)); \
                     cfg->cur++; \
                     continue; \
                 } \
                 err = fget ## TS ## ent_r(el->file, result, buffer, buflen, &pwp); \
-                PDBG(LOG_INFO, "%s() fget*ent_t() %d %s", __FUNCTION__, err, pwp ? pwp->N : "NOPE"); \
+                /* PDBG(LOG_INFO, "%s() fget*ent_t() %s %s", __FUNCTION__, strerror(err), pwp ? pwp->N : "NOPE"); */ \
                 switch (err) { \
                     case 0: /* OK */ \
                         found = true; \
@@ -532,7 +532,7 @@ DEFINE_ENT_FUNCTIONS(GR, gr, struct group, gr_name);
                     return ret; \
                     break; \
             } \
-            PDBG(LOG_DEBUG, "  result name %s", result->N); \
+            /* PDBG(LOG_DEBUG, "  result name %s", result->N); */ \
             if (strcmp(result->N, name) == 0) { \
                 PREFIX_DEFINED(end ## TS ## ent)(); \
                 PDBG(LOG_INFO, "%s(%s) found", __FUNCTION__, name); \
