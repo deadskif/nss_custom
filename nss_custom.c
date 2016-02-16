@@ -532,7 +532,7 @@ DEFINE_ENT_FUNCTIONS(GR, gr, struct group);
                     return ret; \
                     break; \
             } \
-            PDBG(LOG_DEBUG, "  result name %s", result->N"); \
+            PDBG(LOG_DEBUG, "  result name %s", result->N); \
             if (strcmp(result->N, name) == 0) { \
                 PREFIX_DEFINED(end ## TS ## ent)(); \
                 PDBG(LOG_INFO, "%s(%s) found", __FUNCTION__, name); \
