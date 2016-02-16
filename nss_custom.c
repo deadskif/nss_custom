@@ -434,7 +434,7 @@ static int pwd_data_init() {
 #endif
 
 
-#define DEFINE_ENT_FUNCTIONS(T, TS, TYPE) \
+#define DEFINE_ENT_FUNCTIONS(T, TS, TYPE, N) \
     enum nss_status \
     PREFIX_DEFINED(set ## TS ## ent)(int stayopen) \
     { \
@@ -482,7 +482,7 @@ static int pwd_data_init() {
                     continue; \
                 } \
                 err = fget ## TS ## ent_r(el->file, result, buffer, buflen, &pwp); \
-                PDBG(LOG_INFO, "%s() fget*ent_t", __FUNCTION__, err); \
+                PDBG(LOG_INFO, "%s() fget*ent_t(%s)", __FUNCTION__, err, pwp->N); \
                 switch (err) { \
                     case 0: /* OK */ \
                         found = true; \
@@ -504,9 +504,9 @@ static int pwd_data_init() {
         return ret; \
     }
 
-DEFINE_ENT_FUNCTIONS(PW, pw, struct passwd);
-DEFINE_ENT_FUNCTIONS(SP, sp, struct spwd);
-DEFINE_ENT_FUNCTIONS(GR, gr, struct group);
+DEFINE_ENT_FUNCTIONS(PW, pw, struct passwd, pw_name);
+DEFINE_ENT_FUNCTIONS(SP, sp, struct spwd, sp_namp);
+DEFINE_ENT_FUNCTIONS(GR, gr, struct group, gr_name);
 
 #define DEFINE_NAM_FUNCTIONS(T,TS,TYPE,N) \
     enum nss_status \
