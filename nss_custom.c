@@ -467,7 +467,7 @@ static int pwd_data_init() {
         Config *cfg = configs + NSS_CUSTOM_ ## T; \
         bool found = false; \
         do { \
-            DBG(LOG_INFO, "%s() %zu/%zu", __FUNCTION__, cfg->cur, cfg->last); \
+            PDBG(LOG_INFO, "%s() %zu/%zu", __FUNCTION__, cfg->cur, cfg->last); \
             if (cfg->cur == cfg->last) { \
                 ret = NSS_STATUS_NOTFOUND; \
                 /* *errnop = ENOENT; */ \
