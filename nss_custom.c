@@ -482,7 +482,7 @@ static int pwd_data_init() {
                     continue; \
                 } \
                 err = fget ## TS ## ent_r(el->file, result, buffer, buflen, &pwp); \
-                PDBG(LOG_INFO, "%s() fget*ent_t(%s)", __FUNCTION__, err, pwp->N); \
+                PDBG(LOG_INFO, "%s() fget*ent_t() %d %s", __FUNCTION__, err, pwp->N); \
                 switch (err) { \
                     case 0: /* OK */ \
                         found = true; \
