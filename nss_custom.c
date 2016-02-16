@@ -473,7 +473,7 @@ static int pwd_data_init() {
                 /* *errnop = ENOENT; */ \
                 found = true; \
             } else { \
-                TYPE *pwp; \
+                TYPE *pwp = NULL; \
                 ConfigElem *el = cfg->elems + cfg->cur; \
                 PDBG(LOG_INFO, "%s() %s", __FUNCTION__, el->arg); \
                 if (!CFG_EL_INIT(el)) { \
@@ -482,7 +482,7 @@ static int pwd_data_init() {
                     continue; \
                 } \
                 err = fget ## TS ## ent_r(el->file, result, buffer, buflen, &pwp); \
-                PDBG(LOG_INFO, "%s() fget*ent_t() %d %s", __FUNCTION__, err, pwp->N); \
+                PDBG(LOG_INFO, "%s() fget*ent_t() %d %s", __FUNCTION__, err, pwp ? pwp->N : "NOPE"); \
                 switch (err) { \
                     case 0: /* OK */ \
                         found = true; \
