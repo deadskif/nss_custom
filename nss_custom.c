@@ -84,43 +84,50 @@ static Config configs[CONFIGS] = {
 #define CFG_INIT(T) do { \
     if (!configs[NSS_CUSTOM_ ## T].inited) \
         config_init(configs + NSS_CUSTOM_ ## T); \
-    if (!configs[NSS_CUSTOM_ ## T].inited) \
+    if (!configs[NSS_CUSTOM_ ## T].inited) { \
+        UNLOCK(T); \
         return NSS_STATUS_UNAVAIL; \
+    }; \
 }while(0)
 
 #define CFG_FREE(T) \
     config_free(configs + NSS_CUSTOM_ ## T)
 
-#define CFG_EL_INIT(ELP) \
-    ({ \
-        if (!(ELP)->file) { \
-            switch((ELP)->type) { \
-                case NSS_CUSTOM_FILE: \
-                    (ELP)->file = fopen((ELP)->arg, "r"); \
-                    break; \
-                case NSS_CUSTOM_PIPE: \
-                    (ELP)->file = popen((ELP)->arg, "r"); \
-                    break; \
-            } \
-        } \
-        (ELP)->file; \
-    })
-#define CFG_EL_FREE(ELP) \
-    do { \
-        switch ((ELP)->type) { \
-            case NSS_CUSTOM_FILE: \
-                fclose((ELP)->file); \
-                break; \
-            case NSS_CUSTOM_PIPE: \
-                pclose((ELP)->file); \
-                break; \
-        } \
-    } while(0)
+static inline FILE *cfg_el_init(ConfigElem *el) {
+    if (!el->file) { 
+        switch(el->type) {
+            case NSS_CUSTOM_FILE:
+                el->file = fopen(el->arg, "r");
+                break;
+            case NSS_CUSTOM_PIPE:
+                el->file = popen(el->arg, "r");
+                break;
+        }
+    }
+    return el->file;
+}
+#define CFG_EL_INIT(ELP) cfg_el_init((ELP))
+
+static inline void cfg_el_free(ConfigElem *el) {
+    if (el->file) {
+        switch (el->type) {
+            case NSS_CUSTOM_FILE:
+                fclose(el->file);
+                break;
+            case NSS_CUSTOM_PIPE:
+                pclose(el->file);
+                break;
+        }
+        el->file = NULL;
+    }
+}
+#define CFG_EL_FREE(ELP) cfg_el_free((ELP))
+
 static int config_append(Config *cfg, ConfigElem el) {
     if (cfg->last == cfg->allocated) {
         cfg->allocated += CONFIG_INC;
         ConfigElem *n = realloc(cfg->elems, sizeof(ConfigElem) * cfg->allocated);
-        /*PDBG(LOG_DEBUG, "%s(%s) alloc %zu (%p) -> %zu (%p)", __FUNCTION__, cfg->prefix, cfg->last, cfg->elems, cfg->allocated, n);*/
+        /*PDBG(LOG_DEBUG, "%s(%s) alloc %zu (%p) -> %zu (%p)", __func__, cfg->prefix, cfg->last, cfg->elems, cfg->allocated, n);*/
         if (n == NULL)
             return -1;
         cfg->elems = n;
@@ -132,7 +139,7 @@ static int config_append(Config *cfg, ConfigElem el) {
     if (cel->arg == NULL) {
         return -1;
     }
-    PDBG(LOG_DEBUG, "%s(%s) %s added." ,__FUNCTION__, cfg->prefix, cel->arg);
+    PDBG(LOG_DEBUG, "%s(%s) %s added." ,__func__, cfg->prefix, cel->arg);
     cfg->last++;
     return 0;
 }
@@ -151,6 +158,7 @@ static int config_free(Config *cfg) {
     cfg->last = 0;
     cfg->inited = false;
     PDBG(LOG_DEBUG, "config %s freed", cfg->prefix);
+    return 0;
 }
 
 static int config_init(Config *cfg) {
@@ -182,9 +190,9 @@ static int config_init(Config *cfg) {
         PDBG(LOG_DEBUG, "type = %s, op = %s, arg = %s", type, op, "<HIDDEN>"/*arg*/);
         if (strcmp(type, cfg->prefix) == 0) {
             if(strcmp(op, "exec") == 0) {
-                config_append(cfg, (ConfigElem){ NSS_CUSTOM_PIPE, arg});
+                config_append(cfg, (ConfigElem){ NSS_CUSTOM_PIPE, arg, NULL});
             } else if(strcmp(op, "file") == 0) {
-                config_append(cfg, (ConfigElem){ NSS_CUSTOM_FILE, arg});
+                config_append(cfg, (ConfigElem){ NSS_CUSTOM_FILE, arg, NULL});
             } else {
                 PDBG(LOG_WARNING, "Error in " NSS_CUSTOM_CONF_FILE ":%d: unknown operation %s", conf_file_line, op);
             }
@@ -460,7 +468,6 @@ static int pwd_data_init() {
     PREFIX_DEFINED(get ## TS ## ent_r)(TYPE *result, char *buffer, size_t buflen, \
                            int *errnop) \
     { \
-        char *cp = buffer; \
         enum nss_status ret = NSS_STATUS_SUCCESS; \
         int err; \
 \
@@ -470,7 +477,7 @@ static int pwd_data_init() {
         Config *cfg = configs + NSS_CUSTOM_ ## T; \
         bool found = false; \
         do { \
-            PDBG(LOG_INFO, "%s() %zu/%zu", __FUNCTION__, cfg->cur, cfg->last); \
+            PDBG(LOG_INFO, "%s() %zu/%zu", __func__, cfg->cur, cfg->last); \
             if (cfg->cur == cfg->last) { \
                 ret = NSS_STATUS_NOTFOUND; \
                 /* *errnop = ENOENT; */ \
@@ -478,14 +485,14 @@ static int pwd_data_init() {
             } else { \
                 TYPE *pwp = NULL; \
                 ConfigElem *el = cfg->elems + cfg->cur; \
-                /* PDBG(LOG_INFO, "%s() %s", __FUNCTION__, el->arg); */\
+                /* PDBG(LOG_INFO, "%s() %s", __func__, el->arg); */\
                 if (!CFG_EL_INIT(el)) { \
                     PDBG(LOG_ERR, "Can't use %s: %s", el->arg, strerror(errno)); \
                     cfg->cur++; \
                     continue; \
                 } \
                 err = fget ## TS ## ent_r(el->file, result, buffer, buflen, &pwp); \
-                /* PDBG(LOG_INFO, "%s() fget*ent_t() %s %s", __FUNCTION__, strerror(err), pwp ? pwp->N : "NOPE"); */ \
+                /* PDBG(LOG_INFO, "%s() fget*ent_t() %s %s", __func__, strerror(err), pwp ? pwp->N : "NOPE"); */ \
                 switch (err) { \
                     case 0: /* OK */ \
                         found = true; \
@@ -493,6 +500,7 @@ static int pwd_data_init() {
                     case ERANGE: /* Buffer too small */ \
                         ret = NSS_STATUS_TRYAGAIN; \
                         *errnop = err; \
+                    /* fallthrough */ \
                     case ENOENT: \
                     default: \
                         /* Let's read another */ \
@@ -507,9 +515,9 @@ static int pwd_data_init() {
         return ret; \
     }
 
-DEFINE_ENT_FUNCTIONS(PW, pw, struct passwd, pw_name);
-DEFINE_ENT_FUNCTIONS(SP, sp, struct spwd, sp_namp);
-DEFINE_ENT_FUNCTIONS(GR, gr, struct group, gr_name);
+DEFINE_ENT_FUNCTIONS(PW, pw, struct passwd, pw_name)
+DEFINE_ENT_FUNCTIONS(SP, sp, struct spwd, sp_namp)
+DEFINE_ENT_FUNCTIONS(GR, gr, struct group, gr_name)
 
 #define DEFINE_NAM_FUNCTIONS(T,TS,TYPE,N) \
     enum nss_status \
@@ -517,10 +525,9 @@ DEFINE_ENT_FUNCTIONS(GR, gr, struct group, gr_name);
                            size_t buflen, int *errnop) \
     { \
         PREFIX_DEFINED(set ## TS ## ent)(0); \
-        TYPE *pwp; \
         for(;;) { \
             int err; \
-            PDBG(LOG_INFO, "%s(%s)", __FUNCTION__, name); \
+            PDBG(LOG_INFO, "%s(%s)", __func__, name); \
             enum nss_status ret = PREFIX_DEFINED(get ## TS ## ent_r)(result, buffer, buflen, &err); \
             switch (ret) { \
                 case NSS_STATUS_SUCCESS: \
@@ -538,13 +545,13 @@ DEFINE_ENT_FUNCTIONS(GR, gr, struct group, gr_name);
             /* PDBG(LOG_DEBUG, "  result name %s", result->N); */ \
             if (strcmp(result->N, name) == 0) { \
                 PREFIX_DEFINED(end ## TS ## ent)(); \
-                PDBG(LOG_INFO, "%s(%s) found", __FUNCTION__, name); \
+                PDBG(LOG_INFO, "%s(%s) found", __func__, name); \
                 return NSS_STATUS_SUCCESS; \
             } \
         } \
         PREFIX_DEFINED(end ## TS ## ent)(); \
         return NSS_STATUS_NOTFOUND; \
     }
-DEFINE_NAM_FUNCTIONS(PW, pw, struct passwd, pw_name);
-DEFINE_NAM_FUNCTIONS(SP, sp, struct spwd, sp_namp);
-DEFINE_NAM_FUNCTIONS(GR, gr, struct group, gr_name);
+DEFINE_NAM_FUNCTIONS(PW, pw, struct passwd, pw_name)
+DEFINE_NAM_FUNCTIONS(SP, sp, struct spwd, sp_namp)
+DEFINE_NAM_FUNCTIONS(GR, gr, struct group, gr_name)

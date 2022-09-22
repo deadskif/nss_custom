@@ -38,7 +38,7 @@ int main (int argc, char const* argv[])
             pw.pw_uid, pw.pw_dir, pw.pw_shell);
     }
 
-    PREFIX_DEFINED(endpwent)(0);
+    PREFIX_DEFINED(endpwent)();
     
     return 0;
 }

@@ -8,6 +8,14 @@
 #define NSS_CUSTOM_VERSION ${${PROJECT_NAME}_VERSION}
 
 #define PREFIX_DEFINED(func) _ ## ${PROJECT_NAME} ## _ ## func
+#define DECLARE_ENT_FUNCTIONS(TS, TYPE) \
+    extern nss_set ## TS ## ent PREFIX_DEFINED(set ## TS ## ent); \
+    extern nss_end ## TS ## ent PREFIX_DEFINED(end ## TS ## ent); \
+    extern nss_get ## TS ## ent_r PREFIX_DEFINED(get ## TS ## ent_r)
+
+DECLARE_ENT_FUNCTIONS(pw, struct passwd);
+DECLARE_ENT_FUNCTIONS(sp, struct spwd);
+DECLARE_ENT_FUNCTIONS(gr, struct group);
 
 #define NSS_CUSTOM_CONF_FILE "${CONF_FILE}"
 #define CONF_FILE_MAX_LINE_LEN 1024
