@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(nss_custom)
 set(${PROJECT_NAME}_VERSION_MAJOR 0)
-set(${PROJECT_NAME}_VERSION_MINOR 3)
+set(${PROJECT_NAME}_VERSION_MINOR 5)
 set(${PROJECT_NAME}_VERSION
     "${${PROJECT_NAME}_VERSION_MAJOR}.${${PROJECT_NAME}_VERSION_MINOR}")
 option(USE_SYSLOG "Enable syslog support" ON)
@@ -49,10 +49,19 @@ set_target_properties(${PROJECT_NAME}
     SOVERSION 2 # Glibc want it.
     VERSION ${${PROJECT_NAME}_VERSION})
 
+add_executable(getpwnam getpwnam.c)
+#target_link_libraries(getpwnam nss)
+
 if(USE_TEST)
     add_executable(nss_custom_test
         nss_custom_test.c)
     target_link_libraries(nss_custom_test ${PROJECT_NAME})
+    install(TARGETS nss_custom_test
+        DESTINATION bin
+        PERMISSIONS
+            OWNER_READ OWNER_WRITE OWNER_EXECUTE
+            GROUP_READ GROUP_EXECUTE
+            WORLD_READ WORLD_EXECUTE)
 endif()
 
 #add_custom_target(
@@ -68,3 +77,9 @@ install(FILES nss_custom.conf
         OWNER_READ OWNER_WRITE
         GROUP_READ
         WORLD_READ)
+install(TARGETS getpwnam
+    DESTINATION bin
+    PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ GROUP_EXECUTE
+        WORLD_READ WORLD_EXECUTE)

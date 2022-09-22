@@ -29,7 +29,7 @@ DECLARE_ENT_FUNCTIONS(gr, struct group);
 
 #ifdef USE_SYSLOG
 # include <syslog.h>
-# ifdef USE_EDBUG
+# ifdef USE_DEBUG
 #  define PDBG(PRI, FMT, ...) syslog((PRI), __FILE__ ":" STR(__LINE__) ": " FMT , ##  __VA_ARGS__)
 # else
 #  define PDBG(PRI, FMT, ...) do { \

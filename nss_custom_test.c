@@ -25,10 +25,11 @@
 int main (int argc, char const* argv[])
 {
     struct passwd pw;
-    char buf[BUFLEN];
     int errnop;
+    char buf[BUFLEN];
     enum nss_status ret;
 
+    syslog(LOG_INFO, "test pwent");
     PREFIX_DEFINED(setpwent)(0);
     while (1) {
         ret = PREFIX_DEFINED(getpwent_r)(&pw, buf, BUFLEN, &errnop);
@@ -39,6 +40,15 @@ int main (int argc, char const* argv[])
     }
 
     PREFIX_DEFINED(endpwent)();
+    
+    syslog(LOG_INFO, "test pwnam");
+    ret = PREFIX_DEFINED(getpwnam_r)("rooat", &pw, buf, BUFLEN, &errnop);
+    if (ret == NSS_STATUS_SUCCESS) {
+        printf("%s (%d)\tHOME %s\tSHELL %s\n", pw.pw_name,
+            pw.pw_uid, pw.pw_dir, pw.pw_shell);
+    } else {
+        printf("Not Found\n");
+    }
     
     return 0;
 }
