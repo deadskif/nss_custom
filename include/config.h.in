@@ -13,6 +13,7 @@
 #define CONF_FILE_MAX_LINE_LEN 1024
 
 #cmakedefine USE_SYSLOG 1
+#cmakedefine USE_DEBUG 1
 #ifndef STR
 # define STR(X) _STR(X)
 # define _STR(X) #X
@@ -20,7 +21,14 @@
 
 #ifdef USE_SYSLOG
 # include <syslog.h>
-# define PDBG(PRI, FMT, ...) syslog((PRI), __FILE__ ":" STR(__LINE__) ": " FMT , ##  __VA_ARGS__)
+# ifdef USE_EDBUG
+#  define PDBG(PRI, FMT, ...) syslog((PRI), __FILE__ ":" STR(__LINE__) ": " FMT , ##  __VA_ARGS__)
+# else
+#  define PDBG(PRI, FMT, ...) do { \
+    if ((PRI) < LOG_INFO) \
+        syslog((PRI), __FILE__ ":" STR(__LINE__) ": " FMT , ##  __VA_ARGS__); \
+} while(0)
+# endif
 #else
 # define PDBG(...) do{}while(0)
 #endif

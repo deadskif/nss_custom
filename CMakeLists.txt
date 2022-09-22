@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 2.8)
 project(nss_custom)
 set(${PROJECT_NAME}_VERSION_MAJOR 0)
-set(${PROJECT_NAME}_VERSION_MINOR 2)
+set(${PROJECT_NAME}_VERSION_MINOR 3)
 set(${PROJECT_NAME}_VERSION
     "${${PROJECT_NAME}_VERSION_MAJOR}.${${PROJECT_NAME}_VERSION_MINOR}")
 option(USE_SYSLOG "Enable syslog support" ON)
+option(USE_DEBUG "Enable syslog debug messages" ON)
 option(USE_LOCAL "Build to work local" OFF)
 option(USE_TEST "Build test application" OFF)
 if(USE_SYSLOG)

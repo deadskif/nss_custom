@@ -132,7 +132,7 @@ static int config_append(Config *cfg, ConfigElem el) {
     if (cel->arg == NULL) {
         return -1;
     }
-    /*PDBG(LOG_DEBUG, "%s(%s) %s added." ,__FUNCTION__, cfg->prefix, cel->arg);*/
+    PDBG(LOG_DEBUG, "%s(%s) %s added." ,__FUNCTION__, cfg->prefix, cel->arg);
     cfg->last++;
     return 0;
 }
@@ -142,6 +142,7 @@ static int config_free(Config *cfg) {
         if (cfg->elems[i].arg) {
             free(cfg->elems[i].arg);
         }
+        CFG_EL_FREE(cfg->elems + i);
     }
     if (cfg->elems)
         free(cfg->elems);
@@ -149,6 +150,7 @@ static int config_free(Config *cfg) {
     cfg->allocated = 0;
     cfg->last = 0;
     cfg->inited = false;
+    PDBG(LOG_DEBUG, "config %s freed", cfg->prefix);
 }
 
 static int config_init(Config *cfg) {
@@ -191,7 +193,7 @@ static int config_init(Config *cfg) {
     fclose(conf_file);
     cfg->inited = true;
     cfg->cur = 0;
-    PDBG(LOG_INFO, "config %s inited(%zu)", cfg->prefix, cfg->last);
+    PDBG(LOG_DEBUG, "config %s inited(%zu)", cfg->prefix, cfg->last);
     return 0;
 }
 
@@ -447,6 +449,7 @@ static int pwd_data_init() {
     enum nss_status \
     PREFIX_DEFINED(end ## TS ## ent)(void) \
     { \
+        PDBG(LOG_DEBUG, "%s()", __func__); \
         LOCK(T); \
         CFG_FREE(T); \
         UNLOCK(T); \
